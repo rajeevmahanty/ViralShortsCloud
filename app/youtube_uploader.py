@@ -1,5 +1,6 @@
 ﻿import json
 import os
+import tempfile
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -7,16 +8,18 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-TOKEN_FILE = r"C:\Users\rajee\token.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-VIDEO_FILE = (
-    r"C:\Users\rajee\ViralShortsCloud"
-    r"\output\ViralShortsCloud_Final.mp4"
+VIDEO_FILE = os.path.join(
+    BASE_DIR,
+    "output",
+    "ViralShortsCloud_Final.mp4"
 )
 
-METADATA_FILE = (
-    r"C:\Users\rajee\ViralShortsCloud"
-    r"\output\youtube_metadata.json"
+METADATA_FILE = os.path.join(
+    BASE_DIR,
+    "output",
+    "youtube_metadata.json"
 )
 
 SCOPES = [
@@ -24,12 +27,50 @@ SCOPES = [
 ]
 
 
-def upload_video():
+def get_credentials():
 
-    if not os.path.exists(TOKEN_FILE):
-        raise FileNotFoundError(
-            f"YouTube token not found: {TOKEN_FILE}"
+    token_json = os.environ.get("YOUTUBE_TOKEN_JSON")
+
+    if not token_json:
+        raise RuntimeError(
+            "YOUTUBE_TOKEN_JSON GitHub Secret is missing."
         )
+
+    temp_file = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8"
+        ) as file:
+
+            file.write(token_json)
+            temp_file = file.name
+
+        credentials = Credentials.from_authorized_user_file(
+            temp_file,
+            SCOPES
+        )
+
+    finally:
+
+        if temp_file and os.path.exists(temp_file):
+            os.remove(temp_file)
+
+    if credentials.expired and credentials.refresh_token:
+        credentials.refresh(Request())
+
+    if not credentials.valid:
+        raise RuntimeError(
+            "YouTube OAuth token is invalid or expired."
+        )
+
+    return credentials
+
+
+def upload_video():
 
     if not os.path.exists(VIDEO_FILE):
         raise FileNotFoundError(
@@ -41,22 +82,7 @@ def upload_video():
             f"Metadata not found: {METADATA_FILE}"
         )
 
-    # --------------------------------------------------------
-    # LOAD EXISTING YOUTUBE AUTH
-    # --------------------------------------------------------
-
-    credentials = Credentials.from_authorized_user_file(
-        TOKEN_FILE,
-        SCOPES
-    )
-
-    if credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
-
-    if not credentials.valid:
-        raise RuntimeError(
-            "YouTube OAuth token is invalid."
-        )
+    credentials = get_credentials()
 
     youtube = build(
         "youtube",
@@ -64,20 +90,12 @@ def upload_video():
         credentials=credentials
     )
 
-    # --------------------------------------------------------
-    # LOAD GENERATED METADATA
-    # --------------------------------------------------------
-
     with open(
         METADATA_FILE,
         "r",
         encoding="utf-8"
     ) as file:
         metadata = json.load(file)
-
-    # --------------------------------------------------------
-    # FORCE PUBLIC
-    # --------------------------------------------------------
 
     body = {
         "snippet": {
@@ -93,10 +111,6 @@ def upload_video():
         }
     }
 
-    # --------------------------------------------------------
-    # UPLOAD
-    # --------------------------------------------------------
-
     media = MediaFileUpload(
         VIDEO_FILE,
         mimetype="video/mp4",
@@ -109,11 +123,6 @@ def upload_video():
 
     print("Title:", body["snippet"]["title"])
     print("Privacy:", body["status"]["privacyStatus"])
-    print(
-        "File size:",
-        round(os.path.getsize(VIDEO_FILE) / 1024 / 1024, 2),
-        "MB"
-    )
 
     request = youtube.videos().insert(
         part="snippet,status",
@@ -145,10 +154,6 @@ def upload_video():
     print("========================================")
 
     print("Video ID:", video_id)
-    print(
-        "YouTube:",
-        f"https://www.youtube.com/watch?v={video_id}"
-    )
     print(
         "Shorts:",
         f"https://youtube.com/shorts/{video_id}"

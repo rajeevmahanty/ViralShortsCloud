@@ -17,8 +17,6 @@ AUDIO_FILE = os.path.join(OUTPUT_DIR, "narration.wav")
 VIDEO_FILE = os.path.join(OUTPUT_DIR, "ViralShortsCloud_Final.mp4")
 METADATA_FILE = os.path.join(OUTPUT_DIR, "youtube_metadata.json")
 
-PIPER_MODEL = r"C:\Users\rajee\en_US-lessac-medium.onnx"
-
 
 def run_command(command):
     print("\n$", " ".join(command))
@@ -43,11 +41,8 @@ def build_narration(script):
 
 
 def main():
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # ========================================================
-    # STEP 1 - TRENDING TOPIC
-    # ========================================================
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     print("\n===== STEP 1: TRENDING TOPIC =====")
 
@@ -56,10 +51,6 @@ def main():
 
     print("Topic:", topic)
     print("Trend source:", trend.get("source"))
-
-    # ========================================================
-    # STEP 2 - RESEARCH + SCRIPT
-    # ========================================================
 
     print("\n===== STEP 2: RESEARCH + SCRIPT =====")
 
@@ -73,27 +64,42 @@ def main():
     with open(SCRIPT_FILE, "w", encoding="utf-8") as file:
         file.write(narration)
 
-    # ========================================================
-    # STEP 3 - PIPER AI VOICE
-    # ========================================================
-
     print("\n===== STEP 3: AI NARRATION =====")
 
-    run_command([
-        "piper",
-        "-m",
-        PIPER_MODEL,
-        "-f",
-        AUDIO_FILE,
-        "-i",
-        SCRIPT_FILE,
-        "--sentence-silence",
-        "0.15",
-    ])
+    if os.name == "nt":
+        model = r"C:\Users\rajee\en_US-lessac-medium.onnx"
 
-    # ========================================================
-    # STEP 4 - FAST VERTICAL VIDEO
-    # ========================================================
+        if not os.path.exists(model):
+            raise FileNotFoundError(
+                f"Local Piper model not found: {model}"
+            )
+
+        piper_command = [
+            "piper",
+            "-m",
+            model,
+            "-f",
+            AUDIO_FILE,
+            "-i",
+            SCRIPT_FILE,
+            "--sentence-silence",
+            "0.15",
+        ]
+
+    else:
+        piper_command = [
+            "piper",
+            "--model",
+            "en_US-lessac-medium",
+            "--output_file",
+            AUDIO_FILE,
+            "--input_file",
+            SCRIPT_FILE,
+            "--sentence-silence",
+            "0.15",
+        ]
+
+    run_command(piper_command)
 
     print("\n===== STEP 4: CREATE SHORT =====")
 
@@ -127,10 +133,6 @@ def main():
         VIDEO_FILE,
     ])
 
-    # ========================================================
-    # STEP 5 - DYNAMIC YOUTUBE METADATA
-    # ========================================================
-
     print("\n===== STEP 5: YOUTUBE METADATA =====")
 
     short_title = topic.strip()
@@ -155,11 +157,7 @@ def main():
             clean_filename(topic).replace("_", " ")
         ],
 
-        # ====================================================
-        # PUBLIC UPLOAD
-        # ====================================================
         "privacyStatus": "public",
-
         "topic": topic,
         "source": script["source"],
         "source_title": script["source_title"],
