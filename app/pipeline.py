@@ -11,6 +11,7 @@ from services.script_generator import generate_script
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+
 SCRIPT_FILE = os.path.join(OUTPUT_DIR, "narration.txt")
 AUDIO_FILE = os.path.join(OUTPUT_DIR, "narration.wav")
 VIDEO_FILE = os.path.join(OUTPUT_DIR, "ViralShortsCloud_Final.mp4")
@@ -19,19 +20,18 @@ METADATA_FILE = os.path.join(OUTPUT_DIR, "youtube_metadata.json")
 PIPER_MODEL = r"C:\Users\rajee\en_US-lessac-medium.onnx"
 
 
+def run_command(command):
+    print("\n$", " ".join(command))
+    subprocess.run(command, check=True)
+
+
 def clean_filename(value):
     value = re.sub(r"[^A-Za-z0-9_-]+", "_", value)
     return value.strip("_")[:60] or "viral_short"
 
 
-def run_command(command):
-    print("\n$", " ".join(command))
-    result = subprocess.run(command, check=True)
-    return result
-
-
 def build_narration(script):
-    parts = [
+    return "\n\n".join([
         script["hook"],
         script["fact_1"],
         script["fact_2"],
@@ -39,22 +39,30 @@ def build_narration(script):
         script["fact_4"],
         script["fact_5"],
         script["ending"],
-    ]
-
-    return "\n\n".join(parts)
+    ])
 
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    print("\n===== STEP 1: TREND =====")
+    # ========================================================
+    # STEP 1 - TRENDING TOPIC
+    # ========================================================
+
+    print("\n===== STEP 1: TRENDING TOPIC =====")
+
     trend = get_viral_topic()
     topic = trend["topic"]
 
     print("Topic:", topic)
     print("Trend source:", trend.get("source"))
 
+    # ========================================================
+    # STEP 2 - RESEARCH + SCRIPT
+    # ========================================================
+
     print("\n===== STEP 2: RESEARCH + SCRIPT =====")
+
     script = generate_script(topic)
 
     print("Research source:", script["source"])
@@ -65,7 +73,11 @@ def main():
     with open(SCRIPT_FILE, "w", encoding="utf-8") as file:
         file.write(narration)
 
-    print("\n===== STEP 3: NARRATION =====")
+    # ========================================================
+    # STEP 3 - PIPER AI VOICE
+    # ========================================================
+
+    print("\n===== STEP 3: AI NARRATION =====")
 
     run_command([
         "piper",
@@ -79,17 +91,20 @@ def main():
         "0.15",
     ])
 
-    print("\n===== STEP 4: VIDEO =====")
+    # ========================================================
+    # STEP 4 - FAST VERTICAL VIDEO
+    # ========================================================
 
-    # Fast, reliable FFmpeg vertical Short.
-    # Uses the generated narration as the soundtrack and
-    # produces a clean Shorts layout without the expensive GEQ filter.
+    print("\n===== STEP 4: CREATE SHORT =====")
+
     filter_complex = (
         "[0:v]"
         "scale=1080:1920:force_original_aspect_ratio=increase,"
         "crop=1080:1920,"
-        "drawbox=x=18:y=18:w=1044:h=1884:color=0x1683FF@0.95:t=8,"
-        "drawbox=x=55:y=360:w=970:h=1180:color=black@0.38:t=fill,"
+        "drawbox=x=18:y=18:w=1044:h=1884:"
+        "color=0x1683FF@0.95:t=8,"
+        "drawbox=x=55:y=360:w=970:h=1180:"
+        "color=black@0.38:t=fill,"
         "format=yuv420p"
         "[v]"
     )
@@ -112,6 +127,10 @@ def main():
         VIDEO_FILE,
     ])
 
+    # ========================================================
+    # STEP 5 - DYNAMIC YOUTUBE METADATA
+    # ========================================================
+
     print("\n===== STEP 5: YOUTUBE METADATA =====")
 
     short_title = topic.strip()
@@ -121,11 +140,13 @@ def main():
 
     metadata = {
         "title": f"{short_title} #Shorts",
+
         "description": (
             f"Discover fascinating facts about {topic}.\n\n"
             "Created automatically by ViralShortsCloud.\n\n"
             "#Shorts #Facts #DidYouKnow"
         ),
+
         "tags": [
             "shorts",
             "facts",
@@ -133,7 +154,12 @@ def main():
             "interesting facts",
             clean_filename(topic).replace("_", " ")
         ],
-        "privacyStatus": "private",
+
+        # ====================================================
+        # PUBLIC UPLOAD
+        # ====================================================
+        "privacyStatus": "public",
+
         "topic": topic,
         "source": script["source"],
         "source_title": script["source_title"],
@@ -141,14 +167,22 @@ def main():
     }
 
     with open(METADATA_FILE, "w", encoding="utf-8") as file:
-        json.dump(metadata, file, indent=2, ensure_ascii=False)
+        json.dump(
+            metadata,
+            file,
+            indent=2,
+            ensure_ascii=False
+        )
 
-    print(json.dumps(metadata, indent=2, ensure_ascii=False))
+    print(json.dumps(
+        metadata,
+        indent=2,
+        ensure_ascii=False
+    ))
 
-    print("\n===== LOCAL PIPELINE COMPLETE =====")
+    print("\n===== VIDEO GENERATION COMPLETE =====")
     print("Video:", VIDEO_FILE)
     print("Metadata:", METADATA_FILE)
-    print("\nYouTube upload remains PRIVATE for this final pipeline test.")
 
     return 0
 

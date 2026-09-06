@@ -8,21 +8,42 @@ from googleapiclient.http import MediaFileUpload
 
 
 TOKEN_FILE = r"C:\Users\rajee\token.json"
-VIDEO_FILE = r"C:\Users\rajee\ViralShortsCloud\output\ViralShortsCloud_Final.mp4"
-METADATA_FILE = r"C:\Users\rajee\ViralShortsCloud\output\youtube_metadata.json"
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+VIDEO_FILE = (
+    r"C:\Users\rajee\ViralShortsCloud"
+    r"\output\ViralShortsCloud_Final.mp4"
+)
+
+METADATA_FILE = (
+    r"C:\Users\rajee\ViralShortsCloud"
+    r"\output\youtube_metadata.json"
+)
+
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload"
+]
 
 
 def upload_video():
+
     if not os.path.exists(TOKEN_FILE):
-        raise FileNotFoundError(TOKEN_FILE)
+        raise FileNotFoundError(
+            f"YouTube token not found: {TOKEN_FILE}"
+        )
 
     if not os.path.exists(VIDEO_FILE):
-        raise FileNotFoundError(VIDEO_FILE)
+        raise FileNotFoundError(
+            f"Video not found: {VIDEO_FILE}"
+        )
 
     if not os.path.exists(METADATA_FILE):
-        raise FileNotFoundError(METADATA_FILE)
+        raise FileNotFoundError(
+            f"Metadata not found: {METADATA_FILE}"
+        )
+
+    # --------------------------------------------------------
+    # LOAD EXISTING YOUTUBE AUTH
+    # --------------------------------------------------------
 
     credentials = Credentials.from_authorized_user_file(
         TOKEN_FILE,
@@ -33,16 +54,30 @@ def upload_video():
         credentials.refresh(Request())
 
     if not credentials.valid:
-        raise RuntimeError("YouTube OAuth token is invalid.")
-
-    with open(METADATA_FILE, "r", encoding="utf-8") as file:
-        metadata = json.load(file)
+        raise RuntimeError(
+            "YouTube OAuth token is invalid."
+        )
 
     youtube = build(
         "youtube",
         "v3",
         credentials=credentials
     )
+
+    # --------------------------------------------------------
+    # LOAD GENERATED METADATA
+    # --------------------------------------------------------
+
+    with open(
+        METADATA_FILE,
+        "r",
+        encoding="utf-8"
+    ) as file:
+        metadata = json.load(file)
+
+    # --------------------------------------------------------
+    # FORCE PUBLIC
+    # --------------------------------------------------------
 
     body = {
         "snippet": {
@@ -51,11 +86,16 @@ def upload_video():
             "tags": metadata["tags"],
             "categoryId": "27"
         },
+
         "status": {
-            "privacyStatus": metadata.get("privacyStatus", "private"),
+            "privacyStatus": "public",
             "selfDeclaredMadeForKids": False
         }
     }
+
+    # --------------------------------------------------------
+    # UPLOAD
+    # --------------------------------------------------------
 
     media = MediaFileUpload(
         VIDEO_FILE,
@@ -63,9 +103,17 @@ def upload_video():
         resumable=True
     )
 
-    print("\n===== YOUTUBE UPLOAD =====")
+    print("\n========================================")
+    print("       YOUTUBE PUBLIC UPLOAD")
+    print("========================================")
+
     print("Title:", body["snippet"]["title"])
     print("Privacy:", body["status"]["privacyStatus"])
+    print(
+        "File size:",
+        round(os.path.getsize(VIDEO_FILE) / 1024 / 1024, 2),
+        "MB"
+    )
 
     request = youtube.videos().insert(
         part="snippet,status",
@@ -76,18 +124,38 @@ def upload_video():
     response = None
 
     while response is None:
+
         status, response = request.next_chunk()
 
         if status:
             print(
-                f"Upload progress: {int(status.progress() * 100)}%"
+                f"Upload progress: "
+                f"{int(status.progress() * 100)}%"
             )
 
-    video_id = response["id"]
+    video_id = response.get("id")
 
-    print("\n===== UPLOAD SUCCESS =====")
+    if not video_id:
+        raise RuntimeError(
+            f"YouTube returned no video ID: {response}"
+        )
+
+    print("\n========================================")
+    print("       PUBLIC UPLOAD SUCCESS")
+    print("========================================")
+
     print("Video ID:", video_id)
-    print("https://youtube.com/shorts/" + video_id)
+    print(
+        "YouTube:",
+        f"https://www.youtube.com/watch?v={video_id}"
+    )
+    print(
+        "Shorts:",
+        f"https://youtube.com/shorts/{video_id}"
+    )
+
+    print("\nVIDEO IS PUBLIC.")
+    print("========================================")
 
 
 if __name__ == "__main__":
