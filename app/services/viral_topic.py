@@ -16,6 +16,41 @@ TOPICS = [
 
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=US"
 
+BLOCKED_WORDS = [
+    "schedule",
+    "match",
+    "matches",
+    "score",
+    "scores",
+    "live",
+    "fixture",
+    "fixtures",
+    "odds",
+    "betting",
+    "weather",
+    "temperature",
+    "stock",
+    "stocks",
+    "price",
+    "prices",
+    "coupon",
+    "sale",
+    "lottery"
+]
+
+
+def is_good_topic(title):
+    lowered = title.lower()
+
+    if len(title) < 5 or len(title) > 80:
+        return False
+
+    for word in BLOCKED_WORDS:
+        if word in lowered:
+            return False
+
+    return True
+
 
 def get_trending_topic():
     request = Request(
@@ -32,16 +67,16 @@ def get_trending_topic():
         title = item.findtext("title")
 
         if title:
-            title = title.strip()
+            title = " ".join(title.strip().split())
 
-            if len(title) >= 3:
+            if is_good_topic(title):
                 return {
                     "topic": f"5 surprising facts about {title}",
                     "source": "google_trends_rss",
                     "created_at": datetime.utcnow().isoformat()
                 }
 
-    raise RuntimeError("No trending topics found")
+    raise RuntimeError("No suitable trending topic found")
 
 
 def get_viral_topic():
