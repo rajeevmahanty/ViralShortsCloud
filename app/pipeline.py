@@ -5,8 +5,8 @@ import subprocess
 import sys
 from datetime import datetime
 
-from services.viral_topic import get_viral_topic
-from services.script_generator import generate_script
+from app.services.viral_topic import get_viral_topic
+from app.services.script_generator import generate_script
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -187,3 +187,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

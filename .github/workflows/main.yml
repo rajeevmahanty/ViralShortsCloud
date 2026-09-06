@@ -47,7 +47,7 @@ jobs:
             "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json" \
             -O "$HOME/.local/share/piper/en_US-lessac-medium.onnx.json"
 
-      - name: Generate Short
+      - name: Configure Python path`r`n        run: |`r`n          echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV`r`n`r`n      - name: Generate Short
         env:
           PIPER_VOICE: en_US-lessac-medium
         run: |
@@ -59,3 +59,4 @@ jobs:
           YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
         run: |
           python -m app.youtube_uploader
+
