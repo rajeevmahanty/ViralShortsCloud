@@ -21,4 +21,4 @@ jobs:
       - name: Run cloud test
         run: |
           python --version
-          python app/main.py
+          python -m app.main
