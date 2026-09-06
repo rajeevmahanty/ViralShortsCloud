@@ -102,6 +102,7 @@ def main():
             "--sentence-silence",
             "0.15",
         ]
+    run_command(piper_command)
 
     print("\n===== STEP 4: CREATE SHORT =====")
 
@@ -189,4 +190,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
