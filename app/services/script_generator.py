@@ -1,7 +1,7 @@
-﻿import re
-from urllib.parse import quote
+﻿from urllib.parse import quote
 from urllib.request import Request, urlopen
 import json
+import re
 
 
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
@@ -12,14 +12,10 @@ def wikipedia_request(params):
         f"{quote(str(key))}={quote(str(value))}"
         for key, value in params.items()
     )
-
     request = Request(
         f"{WIKIPEDIA_API}?{query}",
-        headers={
-            "User-Agent": "ViralShortsCloud/1.0"
-        }
+        headers={"User-Agent": "ViralShortsCloud/1.0"}
     )
-
     with urlopen(request, timeout=15) as response:
         return json.loads(response.read().decode("utf-8"))
 
@@ -39,7 +35,7 @@ def search_wikipedia(topic):
     if not results:
         raise RuntimeError(f"No Wikipedia article found for: {topic}")
 
-    return results[0]["title"]
+    return [result["title"] for result in results]
 
 
 def get_wikipedia_summary(title):
@@ -68,6 +64,7 @@ def get_wikipedia_summary(title):
 
 def extract_facts(text):
     text = re.sub(r"\s+", " ", text).strip()
+
     sentences = re.split(r"(?<=[.!?])\s+", text)
 
     facts = []
@@ -97,26 +94,14 @@ def extract_facts(text):
         if len(facts) == 5:
             break
 
-    if len(facts) < 5:
-        raise RuntimeError(
-            f"Only found {len(facts)} usable facts."
-        )
-
     return facts
 
 
 def make_spoken_fact(sentence):
     sentence = sentence.strip()
-
-    # Remove Wikipedia-style pronunciation markers.
     sentence = re.sub(r"\([^)]*\)", "", sentence)
-
-    # Remove unnecessary quotation marks.
     sentence = sentence.replace('"', "")
-
-    # Clean whitespace.
     sentence = re.sub(r"\s+", " ", sentence).strip()
-
     return sentence
 
 
@@ -126,27 +111,54 @@ def generate_script(topic):
     if not clean_topic:
         raise ValueError("Topic cannot be empty")
 
-    wikipedia_title = search_wikipedia(clean_topic)
-    summary = get_wikipedia_summary(wikipedia_title)
-    facts = extract_facts(summary)
+    titles = search_wikipedia(clean_topic)
 
-    spoken_facts = [
-        make_spoken_fact(fact)
-        for fact in facts
-    ]
+    last_error = None
 
-    return {
-        "topic": clean_topic,
-        "source": "Wikipedia",
-        "source_title": wikipedia_title,
-        "hook": f"Stop scrolling! Here are 5 fascinating facts about {clean_topic}.",
-        "fact_1": spoken_facts[0],
-        "fact_2": spoken_facts[1],
-        "fact_3": spoken_facts[2],
-        "fact_4": spoken_facts[3],
-        "fact_5": spoken_facts[4],
-        "ending": "Which fact surprised you the most? Follow for more!"
-    }
+    for wikipedia_title in titles:
+
+        try:
+            summary = get_wikipedia_summary(wikipedia_title)
+
+            facts = extract_facts(summary)
+
+            if len(facts) < 5:
+                last_error = (
+                    f"{wikipedia_title}: only {len(facts)} usable facts"
+                )
+                continue
+
+            spoken_facts = [
+                make_spoken_fact(fact)
+                for fact in facts
+            ]
+
+            return {
+                "topic": clean_topic,
+                "source": "Wikipedia",
+                "source_title": wikipedia_title,
+                "hook": (
+                    f"Stop scrolling! Here are 5 fascinating facts "
+                    f"about {clean_topic}."
+                ),
+                "fact_1": spoken_facts[0],
+                "fact_2": spoken_facts[1],
+                "fact_3": spoken_facts[2],
+                "fact_4": spoken_facts[3],
+                "fact_5": spoken_facts[4],
+                "ending": (
+                    "Which fact surprised you the most? "
+                    "Follow for more!"
+                )
+            }
+
+        except Exception as error:
+            last_error = str(error)
+
+    raise RuntimeError(
+        f"Could not find 5 usable researched facts for "
+        f"'{clean_topic}'. Last error: {last_error}"
+    )
 
 
 if __name__ == "__main__":
