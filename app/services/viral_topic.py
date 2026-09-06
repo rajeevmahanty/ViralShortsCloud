@@ -17,25 +17,10 @@ TOPICS = [
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=US"
 
 BLOCKED_WORDS = [
-    "schedule",
-    "match",
-    "matches",
-    "score",
-    "scores",
-    "live",
-    "fixture",
-    "fixtures",
-    "odds",
-    "betting",
-    "weather",
-    "temperature",
-    "stock",
-    "stocks",
-    "price",
-    "prices",
-    "coupon",
-    "sale",
-    "lottery"
+    "schedule", "match", "matches", "score", "scores",
+    "live", "fixture", "fixtures", "odds", "betting",
+    "weather", "temperature", "stock", "stocks",
+    "price", "prices", "coupon", "sale", "lottery"
 ]
 
 
@@ -71,7 +56,7 @@ def get_trending_topic():
 
             if is_good_topic(title):
                 return {
-                    "topic": f"5 surprising facts about {title}",
+                    "topic": title,
                     "source": "google_trends_rss",
                     "created_at": datetime.utcnow().isoformat()
                 }
