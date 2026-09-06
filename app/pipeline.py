@@ -90,7 +90,7 @@ def main():
         piper_command = [
             "piper",
             "--model",
-            "$HOME/.local/share/piper/en_US-lessac-medium.onnx",
+            "en_US-lessac-medium",
             "--output_file",
             AUDIO_FILE,
             "--input_file",
@@ -187,5 +187,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
 
