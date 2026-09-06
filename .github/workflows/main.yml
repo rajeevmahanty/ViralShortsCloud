@@ -21,4 +21,4 @@ jobs:
       - name: Run cloud test
         run: |
           python --version
-          echo "ViralShortsCloud is running successfully on GitHub Actions."
+          python app/main.py
