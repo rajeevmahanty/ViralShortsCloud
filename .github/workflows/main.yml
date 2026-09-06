@@ -74,3 +74,4 @@ jobs:
           fi
 
           python -m app.youtube_uploader
+

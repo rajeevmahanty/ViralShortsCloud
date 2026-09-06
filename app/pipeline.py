@@ -87,18 +87,21 @@ def main():
         ]
 
     else:
-        piper_command = [
-            "piper",
-            "--model",
-            "en_US-lessac-medium",
-            "--output_file",
-            AUDIO_FILE,
-            "--input_file",
-            SCRIPT_FILE,
-            "--sentence-silence",
-            "0.15",
-        ]
+        piper_model = os.path.expanduser(
+        "~/.local/share/piper/en_US-lessac-medium.onnx"
+    )
 
+    piper_command = [
+        "piper",
+        "--model",
+        piper_model,
+        "--output_file",
+        AUDIO_FILE,
+        "--input_file",
+        SCRIPT_FILE,
+        "--sentence-silence",
+        "0.15",
+    ]
     run_command(piper_command)
 
     print("\n===== STEP 4: CREATE SHORT =====")
@@ -187,6 +190,9 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
 
 
 
